@@ -89,13 +89,12 @@ class KidsDiaryDraftHelper:
 
     def create_or_update_draft(self, draft_payload: Dict = None):
         payload = {"childId": self._child_id, "userToken": self._token}
-        self._logger.info(payload)
         draft_list_response = post(path="diary/draft/list", payload=payload)
         if draft_list_response.status_code == 200:
             data = draft_list_response.json()
             if data['totalHits'] > 0:
                 self._logger.info(
-                    f"Found {data['totalHits']} drafts")
+                    f"Found {data['totalHits']} draft(s), listing the first one ...")
                 draft_id = data['list'][0]['draftId']
                 payload['draftId'] = draft_id
                 draft_detail_response = post(
@@ -103,7 +102,7 @@ class KidsDiaryDraftHelper:
                 self._logger.info(
                     f"Current draft: {draft_detail_response.json()}")
                 if draft_payload is not None:
-                    self._logger.info("Replacing the current draft ...")
+                    self._logger.info("Replacing the first draft ...")
                     draft_payload['draftId'] = draft_id
                     update_draft_response = post(
                         path="diary/draft/update", payload=draft_payload)
