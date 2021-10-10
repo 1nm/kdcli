@@ -42,10 +42,10 @@ def tomorrow(tz: timezone = TIME_ZONE_JST) -> datetime:
     return datetime.now(tz) + timedelta(days=1)
 
 
-class KidsDiaryDraftHelper:
+class KidsDiaryCLI:
     def __init__(self, token: str):
         self._logger = logging.getLogger(
-            KidsDiaryDraftHelper.__class__.__name__)
+            KidsDiaryCLI.__class__.__name__)
         self._token = token
         my_profile_response = post(
             path="my_profile", payload={"userToken": token})
@@ -126,18 +126,39 @@ class KidsDiaryDraftHelper:
             self._logger.warning(draft_list_response.text)
 
 
-def main():
-    parser = ArgumentParser(description="KidsDiary Draft Helper CLI")
-    parser.add_argument("-l", "--list", action="store_true")
-    parser.add_argument("-m", "--message")
-    parser.add_argument("-t", "--token", required=True)
-    args = parser.parse_args()
-    helper = KidsDiaryDraftHelper(args.token)
+def command_draft(args):
+    helper = KidsDiaryCLI(args.token)
     if args.list:
         helper.list_drafts()
-    else:
-        draft_payload = helper.get_draft_payload(date=today(), text=args.text)
+    elif args.create:
+        draft_payload = helper.get_draft_payload(
+            date=tomorrow(), text=args.message)
         helper.create_or_update_draft(draft_payload=draft_payload)
+
+
+def main():
+    parser = ArgumentParser(description="KidsDiary CLI")
+
+    subparsers = parser.add_subparsers()
+
+    parser_draft = subparsers.add_parser('draft', help='see `draft -h`')
+
+    parser_draft.add_argument("-t", "--token", required=True)
+    parser_draft.add_argument("-m", "--message")
+    parser_draft.add_argument("-l", "--list", action="store_true")
+    parser_draft.add_argument("-c", "--create", action="store_true")
+    parser_draft.set_defaults(handler=command_draft)
+
+    parser_photos = subparsers.add_parser('photos', help='see `photos -h`')
+    parser_photos.add_argument("-t", "--token", required=True)
+    parser_photos.add_argument("-l", "--list", action="store_true")
+    parser_photos.set_defaults(handler=command_draft)
+
+    args = parser.parse_args()
+    if hasattr(args, 'handler'):
+        args.handler(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':
