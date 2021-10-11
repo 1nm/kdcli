@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import argparse
 import json
 import logging
 import random
+import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timezone, timedelta
 from typing import Dict
@@ -42,6 +42,13 @@ def today(tz: timezone = TIME_ZONE_JST) -> datetime:
 
 def tomorrow(tz: timezone = TIME_ZONE_JST) -> datetime:
     return datetime.now(tz) + timedelta(days=1)
+
+
+def remove_token() -> str:
+    kdcliConfigDir = Path.home() / ".kdcli"
+    configFile = kdcliConfigDir / "config.json"
+    if configFile.exists:
+        configFile.unlink()
 
 
 def load_token() -> str:
@@ -156,7 +163,13 @@ class KidsDiaryCLI:
 
 
 def command_draft(args):
-    helper = KidsDiaryCLI(args.token)
+    token = load_token()
+    if token is None:
+        print("Credentials not found! Please login.")
+        sys.exit(1)
+    else:
+        print("[Logged in]")
+    helper = KidsDiaryCLI(token)
     if args.list:
         helper.list_drafts()
     elif args.create:
@@ -167,6 +180,23 @@ def command_draft(args):
         draft_payload = helper.get_draft_payload(
             date=date, message=message, food_menu=food_menu, pick_up_person=pick_up_person)
         helper.create_or_update_draft(draft_payload=draft_payload)
+
+
+def command_login(args):
+    login_response = post(
+        path="login", payload={"loginName": args.user, "password": args.password})
+    if login_response.status_code == 200:
+        print(login_response.text)
+        token = login_response.json()['userToken']
+        save_token(token)
+        print("Login succeeded!")
+    else:
+        print("Login failed!")
+
+
+def command_logout(args):
+    remove_token()
+    print("Logged out")
 
 
 def main():
@@ -192,6 +222,16 @@ def main():
     parser_draft.add_argument(
         "-f", "--food-menu", default='Milk and bread', help='Food menu')
     parser_draft.set_defaults(handler=command_draft)
+
+    parser_login = subparsers.add_parser(
+        'login', help='see `login -h`', formatter_class=ArgumentDefaultsHelpFormatter)
+    parser_login.add_argument("-u", "--user", required=True)
+    parser_login.add_argument("-p", "--password", required=True)
+    parser_login.set_defaults(handler=command_login)
+
+    parser_logout = subparsers.add_parser(
+        'logout', help='see `logout -h`', formatter_class=ArgumentDefaultsHelpFormatter)
+    parser_logout.set_defaults(handler=command_logout)
 
     args = parser.parse_args()
     if hasattr(args, 'handler'):
