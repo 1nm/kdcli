@@ -57,6 +57,8 @@ class KidsDiaryCLI:
 
     def get_draft_payload(self, date: datetime = today(),
                           text: str = "本日もよろしくお願いいたします",
+                          foodMenu: str = "Milk and bread",
+                          pickUpPerson: str = "Father",
                           publishDelta=timedelta(
                               hours=8, minutes=30),  # publish at 8:30am
                           # slept at 8pm yesterday
@@ -81,8 +83,8 @@ class KidsDiaryCLI:
                         "healthTime": str(epoch_millis(dt0am + healthTimeDelta))}],
             "sleep": [{"sleepTime": epoch_millis(dt0am + sleepTimeDelta),
                        "awakeTime": epoch_millis((dt0am + awakeTimeDelta))}],
-            "food": [{"foodMenu": "Milk and bread", "foodTime": epoch_millis(dt0am + foodTimeDelta)}],
-            "pickUpPerson": "Father", "pickUpTime": epoch_millis(dt0am + pickUpTimeDelta)}
+            "food": [{"foodMenu": foodMenu, "foodTime": epoch_millis(dt0am + foodTimeDelta)}],
+            "pickUpPerson": pickUpPerson, "pickUpTime": epoch_millis(dt0am + pickUpTimeDelta)}
 
     def list_drafts(self):
         self.create_or_update_draft(draft_payload=None)
@@ -144,15 +146,12 @@ def main():
     parser_draft = subparsers.add_parser('draft', help='see `draft -h`')
 
     parser_draft.add_argument("-t", "--token", required=True)
-    parser_draft.add_argument("-m", "--message")
-    parser_draft.add_argument("-l", "--list", action="store_true")
-    parser_draft.add_argument("-c", "--create", action="store_true")
+    parser_draft.add_argument("-m", "--message", help='Message to the teacher')
+    parser_draft.add_argument(
+        "-l", "--list", action="store_true", help='List the drafts')
+    parser_draft.add_argument(
+        "-c", "--create", action="store_true", help='Create a new draft')
     parser_draft.set_defaults(handler=command_draft)
-
-    parser_photos = subparsers.add_parser('photos', help='see `photos -h`')
-    parser_photos.add_argument("-t", "--token", required=True)
-    parser_photos.add_argument("-l", "--list", action="store_true")
-    parser_photos.set_defaults(handler=command_draft)
 
     args = parser.parse_args()
     if hasattr(args, 'handler'):
