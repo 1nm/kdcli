@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import logging
 import random
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timezone, timedelta
 from typing import Dict
 from pathlib import Path
@@ -82,35 +83,35 @@ class KidsDiaryCLI:
             raise ValueError("Could not retrieve child id from KidsDiary!")
 
     def get_draft_payload(self, date: datetime = today(),
-                          text: str = "本日もよろしくお願いいたします",
-                          foodMenu: str = "Milk and bread",
-                          pickUpPerson: str = "Father",
-                          publishDelta=timedelta(
+                          message: str = "本日もよろしくお願いいたします",
+                          food_menu: str = "Milk and bread",
+                          pick_up_person: str = "Father",
+                          publish_delta=timedelta(
                               hours=8, minutes=30),  # publish at 8:30am
                           # slept at 8pm yesterday
-                          sleepTimeDelta=timedelta(hours=-4),
-                          awakeTimeDelta=timedelta(hours=8),  # awaken at 8am
-                          foodTimeDelta=timedelta(
+                          sleep_time_delta=timedelta(hours=-4),
+                          awake_time_delta=timedelta(hours=8),  # awaken at 8am
+                          food_time_delta=timedelta(
                               hours=8, minutes=15),  # food at 8:15am
                           # temperature taken at 8:10am
-                          healthTimeDelta=timedelta(hours=8, minutes=10),
-                          pickUpTimeDelta=timedelta(
+                          health_time_delta=timedelta(hours=8, minutes=10),
+                          pick_up_time_delta=timedelta(
                               hours=16, minutes=30)  # pick-up at 4:30pm
                           ) -> Dict:
         dt0am = datetime_0am(date)
         return {
             "childId": self._child_id,
             "userToken": self._token,
-            "publishScheduleDate": epoch_millis(dt0am + publishDelta),
-            "textContent": text.replace('\\n', '\n'),
+            "publishScheduleDate": epoch_millis(dt0am + publish_delta),
+            "textContent": message,
             "health": [{"healthStatus": "Health",
                         # randomly generated from 36.4 to 36.8
                         "temperature": f"36.{random.choice([4, 5, 6, 7, 8])}",
-                        "healthTime": str(epoch_millis(dt0am + healthTimeDelta))}],
-            "sleep": [{"sleepTime": epoch_millis(dt0am + sleepTimeDelta),
-                       "awakeTime": epoch_millis((dt0am + awakeTimeDelta))}],
-            "food": [{"foodMenu": foodMenu, "foodTime": epoch_millis(dt0am + foodTimeDelta)}],
-            "pickUpPerson": pickUpPerson, "pickUpTime": epoch_millis(dt0am + pickUpTimeDelta)}
+                        "healthTime": str(epoch_millis(dt0am + health_time_delta))}],
+            "sleep": [{"sleepTime": epoch_millis(dt0am + sleep_time_delta),
+                       "awakeTime": epoch_millis((dt0am + awake_time_delta))}],
+            "food": [{"foodMenu": food_menu, "foodTime": epoch_millis(dt0am + food_time_delta)}],
+            "pickUpPerson": pick_up_person, "pickUpTime": epoch_millis(dt0am + pick_up_time_delta)}
 
     def list_drafts(self):
         self.create_or_update_draft(draft_payload=None)
@@ -159,26 +160,37 @@ def command_draft(args):
     if args.list:
         helper.list_drafts()
     elif args.create:
+        date = today() if args.today else tomorrow()
+        message = args.message.replace('\\n', '\n')
+        food_menu = args.food_menu
+        pick_up_person = args.pick_up_person
         draft_payload = helper.get_draft_payload(
-            date=tomorrow() if args.tomorrow else today(), text=args.message)
+            date=date, message=message, food_menu=food_menu, pick_up_person=pick_up_person)
         helper.create_or_update_draft(draft_payload=draft_payload)
 
 
 def main():
-    parser = ArgumentParser(description="KidsDiary CLI")
+    parser = ArgumentParser(description="KidsDiary CLI",
+                            formatter_class=ArgumentDefaultsHelpFormatter)
 
     subparsers = parser.add_subparsers()
 
-    parser_draft = subparsers.add_parser('draft', help='see `draft -h`')
+    parser_draft = subparsers.add_parser(
+        'draft', help='see `draft -h`', formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser_draft.add_argument("-t", "--token")
-    parser_draft.add_argument("-T", "--tomorrow", action="store_true")
-    parser_draft.add_argument(
-        "-m", "--message", help='Message to the teacher')
     parser_draft.add_argument(
         "-l", "--list", action="store_true", help='List the drafts')
     parser_draft.add_argument(
         "-c", "--create", action="store_true", help='Create a new draft')
+    parser_draft.add_argument("-T", "--today", action="store_true",
+                              help='Publish the draft today')
+    parser_draft.add_argument(
+        "-m", "--message", default='本日もよろしくお願いします', help='Message to the teacher')
+    parser_draft.add_argument(
+        "-p", "--pick-up-person", default='Father', help='Pick-up person')
+    parser_draft.add_argument(
+        "-f", "--food-menu", default='Milk and bread', help='Food menu')
     parser_draft.set_defaults(handler=command_draft)
 
     args = parser.parse_args()
