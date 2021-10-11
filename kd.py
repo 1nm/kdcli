@@ -5,6 +5,7 @@ import random
 from argparse import ArgumentParser
 from datetime import datetime, timezone, timedelta
 from typing import Dict
+from pathlib import Path
 
 import requests
 
@@ -42,10 +43,35 @@ def tomorrow(tz: timezone = TIME_ZONE_JST) -> datetime:
     return datetime.now(tz) + timedelta(days=1)
 
 
+def load_token() -> str:
+    kdcliConfigDir = Path.home() / ".kdcli"
+    configFile = kdcliConfigDir / "config.json"
+    if not kdcliConfigDir.exists() or not configFile.exists():
+        return None
+    with configFile.open(mode="r") as f:
+        config = json.load(f)
+    return None if "userToken" not in config else config['userToken']
+
+
+def save_token(token: str):
+    kdcliConfigDir = Path.home() / ".kdcli"
+    if not kdcliConfigDir.exists():
+        kdcliConfigDir.mkdir
+    configFile = kdcliConfigDir / "config.json"
+    with configFile.open(mode="w") as f:
+        json.dump({"userToken": token}, f)
+
+
 class KidsDiaryCLI:
     def __init__(self, token: str):
         self._logger = logging.getLogger(
             KidsDiaryCLI.__class__.__name__)
+        if token is None:
+            token = load_token()
+        else:
+            save_token(token)
+        if token is None:
+            raise ValueError("Token does not exist!")
         self._token = token
         my_profile_response = post(
             path="my_profile", payload={"userToken": token})
@@ -76,7 +102,7 @@ class KidsDiaryCLI:
             "childId": self._child_id,
             "userToken": self._token,
             "publishScheduleDate": epoch_millis(dt0am + publishDelta),
-            "textContent": text,
+            "textContent": text.replace('\\n', '\n'),
             "health": [{"healthStatus": "Health",
                         # randomly generated from 36.4 to 36.8
                         "temperature": f"36.{random.choice([4, 5, 6, 7, 8])}",
@@ -134,7 +160,7 @@ def command_draft(args):
         helper.list_drafts()
     elif args.create:
         draft_payload = helper.get_draft_payload(
-            date=tomorrow(), text=args.message)
+            date=tomorrow() if args.tomorrow else today(), text=args.message)
         helper.create_or_update_draft(draft_payload=draft_payload)
 
 
@@ -145,8 +171,10 @@ def main():
 
     parser_draft = subparsers.add_parser('draft', help='see `draft -h`')
 
-    parser_draft.add_argument("-t", "--token", required=True)
-    parser_draft.add_argument("-m", "--message", help='Message to the teacher')
+    parser_draft.add_argument("-t", "--token")
+    parser_draft.add_argument("-T", "--tomorrow", action="store_true")
+    parser_draft.add_argument(
+        "-m", "--message", help='Message to the teacher')
     parser_draft.add_argument(
         "-l", "--list", action="store_true", help='List the drafts')
     parser_draft.add_argument(
