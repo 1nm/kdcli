@@ -208,7 +208,6 @@ def main():
     parser_draft = subparsers.add_parser(
         'draft', help='see `draft -h`', formatter_class=ArgumentDefaultsHelpFormatter)
 
-    parser_draft.add_argument("-t", "--token")
     parser_draft.add_argument(
         "-l", "--list", action="store_true", help='List the drafts')
     parser_draft.add_argument(
