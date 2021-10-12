@@ -44,50 +44,39 @@ def tomorrow(tz: timezone = TIME_ZONE_JST) -> datetime:
     return datetime.now(tz) + timedelta(days=1)
 
 
-def remove_token() -> str:
+def remove_config() -> str:
     kdcliConfigDir = Path.home() / ".kdcli"
     configFile = kdcliConfigDir / "config.json"
     if configFile.exists:
         configFile.unlink()
 
 
-def load_token() -> str:
+def load_config() -> Dict:
     kdcliConfigDir = Path.home() / ".kdcli"
     configFile = kdcliConfigDir / "config.json"
     if not kdcliConfigDir.exists() or not configFile.exists():
         return None
     with configFile.open(mode="r") as f:
         config = json.load(f)
-    return None if "userToken" not in config else config['userToken']
+    return config
 
 
-def save_token(token: str):
+def save_config(config: Dict):
     kdcliConfigDir = Path.home() / ".kdcli"
     if not kdcliConfigDir.exists():
         kdcliConfigDir.mkdir
     configFile = kdcliConfigDir / "config.json"
     with configFile.open(mode="w") as f:
-        json.dump({"userToken": token}, f)
+        json.dump(config, f)
 
 
 class KidsDiaryCLI:
-    def __init__(self, token: str):
+    def __init__(self, config: Dict):
         self._logger = logging.getLogger(
             KidsDiaryCLI.__class__.__name__)
-        if token is None:
-            token = load_token()
-        else:
-            save_token(token)
-        if token is None:
+        if config is None or 'userToken' not in config:
             raise ValueError("Token does not exist!")
-        self._token = token
-        my_profile_response = post(
-            path="my_profile", payload={"userToken": token})
-        if my_profile_response.status_code == 200:
-            # Assume there is only one child
-            self._child_id = my_profile_response.json()["childIds"][0]
-        else:
-            raise ValueError("Could not retrieve child id from KidsDiary!")
+        self._config = config
 
     def get_draft_payload(self, date: datetime = today(),
                           message: str = "本日もよろしくお願いいたします",
@@ -107,8 +96,8 @@ class KidsDiaryCLI:
                           ) -> Dict:
         dt0am = datetime_0am(date)
         return {
-            "childId": self._child_id,
-            "userToken": self._token,
+            "childId": self._config['childIds'][0],
+            "userToken": self._config['userToken'],
             "publishScheduleDate": epoch_millis(dt0am + publish_delta),
             "textContent": message,
             "health": [{"healthStatus": "Health",
@@ -124,7 +113,8 @@ class KidsDiaryCLI:
         self.create_or_update_draft(draft_payload=None)
 
     def create_or_update_draft(self, draft_payload: Dict = None):
-        payload = {"childId": self._child_id, "userToken": self._token}
+        payload = {
+            "childId": self._config['childIds'][0], "userToken": self._config['userToken']}
         draft_list_response = post(path="diary/draft/list", payload=payload)
         if draft_list_response.status_code == 200:
             data = draft_list_response.json()
@@ -163,13 +153,13 @@ class KidsDiaryCLI:
 
 
 def command_draft(args):
-    token = load_token()
-    if token is None:
+    config = load_config()
+    if config is None:
         print("Credentials not found! Please login.")
         sys.exit(1)
     else:
-        print("[Logged in]")
-    helper = KidsDiaryCLI(token)
+        print(f"[Logged in as {config['loginName']}]")
+    helper = KidsDiaryCLI(config)
     if args.list:
         helper.list_drafts()
     elif args.create:
@@ -186,17 +176,18 @@ def command_login(args):
     login_response = post(
         path="login", payload={"loginName": args.user, "password": args.password})
     if login_response.status_code == 200:
-        print(login_response.text)
-        token = login_response.json()['userToken']
-        save_token(token)
-        print("Login succeeded!")
+        login_response_json = login_response.json()
+        config = {
+            'userToken': login_response_json['userToken'], 'childIds': login_response_json['childIds'], 'loginName': login_response_json['loginName']}
+        save_config(config)
+        print(f"Login succeeded!")
     else:
-        print("Login failed!")
+        print(f"Login failed!")
 
 
 def command_logout(args):
-    remove_token()
-    print("Logged out")
+    remove_config()
+    print(f"Logged out")
 
 
 def main():
