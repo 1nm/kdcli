@@ -10,8 +10,11 @@ from pathlib import Path
 
 import requests
 
+__version__ = '0.0.1'
+
 logging.basicConfig(
-    format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+    # format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+    format="%(message)s", level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S', stream=sys.stdout)
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +213,10 @@ def command_logout(args):
     logger.info(f"Logged out")
 
 
+def command_version(args):
+    logger.info(f"{__version__}")
+
+
 def main():
     parser = ArgumentParser(description="KidsDiary CLI",
                             formatter_class=ArgumentDefaultsHelpFormatter)
@@ -242,6 +249,10 @@ def main():
     parser_logout = subparsers.add_parser(
         'logout', help='see `logout -h`', formatter_class=ArgumentDefaultsHelpFormatter)
     parser_logout.set_defaults(handler=command_logout)
+
+    parser_version = subparsers.add_parser(
+        'version', help='see `version -h`', formatter_class=ArgumentDefaultsHelpFormatter)
+    parser_version.set_defaults(handler=command_version)
 
     args = parser.parse_args()
     if hasattr(args, 'handler'):
