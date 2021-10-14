@@ -11,7 +11,9 @@ from pathlib import Path
 import requests
 
 logging.basicConfig(
-    format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO)
+    format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+
+logger = logging.getLogger(__name__)
 
 TIME_ZONE_JST = timezone(timedelta(hours=9))
 
@@ -72,8 +74,6 @@ def save_config(config: Dict):
 
 class KidsDiaryCLI:
     def __init__(self, config: Dict):
-        self._logger = logging.getLogger(
-            KidsDiaryCLI.__class__.__name__)
         if config is None or 'userToken' not in config:
             raise ValueError("Token does not exist!")
         self._config = config
@@ -112,6 +112,15 @@ class KidsDiaryCLI:
     def list_drafts(self):
         self.create_or_update_draft(draft_payload=None)
 
+    def get_draft(self, draft_id: str) -> Dict:
+        payload = {
+            "childId": self._config['childIds'][0], "userToken": self._config['userToken']}
+        payload['draftId'] = draft_id
+        draft_detail_response = post(
+            path="diary/draft/detail", payload=payload)
+        if draft_detail_response.status_code == 200:
+            return draft_detail_response.json()
+
     def create_or_update_draft(self, draft_payload: Dict = None):
         payload = {
             "childId": self._config['childIds'][0], "userToken": self._config['userToken']}
@@ -119,46 +128,47 @@ class KidsDiaryCLI:
         if draft_list_response.status_code == 200:
             data = draft_list_response.json()
             if data['totalHits'] > 0:
-                self._logger.info(
-                    f"Found {data['totalHits']} draft(s), listing the first one ...")
-                draft_id = data['list'][0]['draftId']
-                payload['draftId'] = draft_id
-                draft_detail_response = post(
-                    path="diary/draft/detail", payload=payload)
-                self._logger.info(
-                    f"Current draft: {draft_detail_response.json()}")
+                logger.info(
+                    f"Found {data['totalHits']} draft(s):")
+                # List the draft content
+                for draft in data['list']:
+                    draft_content = self.get_draft(draft_id=draft['draftId'])
+                    logger.info(f"{draft_content}")
                 if draft_payload is not None:
-                    self._logger.info("Replacing the first draft ...")
-                    draft_payload['draftId'] = draft_id
+                    draft_payload['draftId'] = data['list'][0]['draftId']
+                    logger.info(
+                        f"Replacing draft {draft_payload['draftId']} ...")
                     update_draft_response = post(
                         path="diary/draft/update", payload=draft_payload)
                     if update_draft_response.status_code == 200:
-                        self._logger.info("Draft updated")
+                        logger.info(
+                            f"Draft {draft_payload['draftId']} updated.")
                     else:
-                        self._logger.warning(update_draft_response.status_code)
+                        logger.error(
+                            f"Draft update API returned status code: {update_draft_response.status_code}, message: {update_draft_response.text}")
             else:
-                self._logger.info(f"No drafts")
+                logger.info(f"No drafts")
                 if draft_payload is not None:
-                    self._logger.info("Creating a new draft ...")
+                    logger.info("Creating a new draft ...")
                     create_draft_response = post(
                         path="diary/draft/post", payload=draft_payload)
                     if create_draft_response.status_code == 200:
-                        self._logger.info("Draft created")
+                        logger.info("Draft created.")
                     else:
-                        self._logger.warning(create_draft_response.status_code)
+                        logger.error(
+                            f"Draft creation API returned status code: {create_draft_response.status_code}, message: {create_draft_response.text}")
         else:
-            self._logger.warning("Failed to list the drafts")
-            self._logger.warning(draft_list_response.status_code)
-            self._logger.warning(draft_list_response.text)
+            logger.error(
+                f"Draft list API returned status code: {draft_list_response.status_code}, message: {draft_list_response.text}")
 
 
 def command_draft(args):
     config = load_config()
     if config is None:
-        print("Credentials not found! Please login.")
+        logger.error("Credentials not found! Please login.")
         sys.exit(1)
     else:
-        print(f"[Logged in as {config['loginName']}]")
+        logger.info(f"Logged in as {config['loginName']}")
     helper = KidsDiaryCLI(config)
     if args.list:
         helper.list_drafts()
@@ -180,14 +190,14 @@ def command_login(args):
         config = {
             'userToken': login_response_json['userToken'], 'childIds': login_response_json['childIds'], 'loginName': login_response_json['loginName']}
         save_config(config)
-        print(f"Login succeeded!")
+        logger.info(f"Login succeeded!")
     else:
-        print(f"Login failed!")
+        logger.error(f"Login failed!")
 
 
 def command_logout(args):
     remove_config()
-    print(f"Logged out")
+    logger.info(f"Logged out")
 
 
 def main():
