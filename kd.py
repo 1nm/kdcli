@@ -46,6 +46,11 @@ def tomorrow(tz: timezone = TIME_ZONE_JST) -> datetime:
     return datetime.now(tz) + timedelta(days=1)
 
 
+def nearest(tz: timezone = TIME_ZONE_JST) -> datetime:
+    hour = datetime.now(tz).hour
+    return today() if hour < 9 else tomorrow()
+
+
 def remove_config() -> str:
     kdcliConfigDir = Path.home() / ".kdcli"
     configFile = kdcliConfigDir / "config.json"
@@ -173,7 +178,7 @@ def command_draft(args):
     if args.list:
         helper.list_drafts()
     elif args.create:
-        date = today() if args.today else tomorrow()
+        date = today() if args.today else nearest()
         message = args.message.replace('\\n', '\n')
         food_menu = args.food_menu
         pick_up_person = args.pick_up_person
