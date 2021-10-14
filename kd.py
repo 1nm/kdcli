@@ -64,7 +64,7 @@ def load_config() -> Dict:
 def save_config(config: Dict):
     kdcliConfigDir = Path.home() / ".kdcli"
     if not kdcliConfigDir.exists():
-        kdcliConfigDir.mkdir
+        kdcliConfigDir.mkdir()
     configFile = kdcliConfigDir / "config.json"
     with configFile.open(mode="w") as f:
         json.dump(config, f)
