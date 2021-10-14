@@ -2,10 +2,16 @@
 
 A CLI tool that helps manipulating KidsDiary from command line
 
+## Install
+```
+curl -LO https://github.com/1nm/kdcli/releases/latest/download/kd
+sudo install -o root -g root -m 0755 kd /usr/local/bin/kd
+```
+
 ## Usage
 
 ```
-usage: kd.py [-h] {draft,login,logout,version} ...
+usage: kd [-h] {draft,login,logout,version} ...
 
 KidsDiary CLI
 
@@ -20,11 +26,10 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-
 ### Login
 
 ```
-usage: kd.py login [-h] -u USER -p PASSWORD
+usage: kd login [-h] -u USER -p PASSWORD
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -35,7 +40,7 @@ optional arguments:
 ### Draft
 
 ```
-usage: kd.py draft [-h] [-l] [-c] [-T] [-m MESSAGE] [-p PICK_UP_PERSON] [-f FOOD_MENU]
+usage: kd draft [-h] [-l] [-c] [-T] [-m MESSAGE] [-p PICK_UP_PERSON] [-f FOOD_MENU]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -55,7 +60,7 @@ optional arguments:
 ### Login
 
 ```bash
-> ./kd.py login -u YOUR_USER_NAME -p YOUR_PASSWORD
+> kd login -u YOUR_USER_NAME -p YOUR_PASSWORD
 ```
 
 ```
@@ -69,7 +74,7 @@ Logged out
 ### List the drafts
 
 ```bash
-> ./kd.py draft -l
+> kd draft -l
 ```
 
 ```
@@ -81,7 +86,7 @@ Found 1 draft(s):
 ### Create or replace a draft
 
 ```bash
-> ./kd.py draft -c -m "This is a test draft"
+> kd draft -c -m "This is a test draft"
 ```
 
 ```
