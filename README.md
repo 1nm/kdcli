@@ -40,7 +40,7 @@ optional arguments:
 ### Create or replace a draft
 
 ```bash
-./kd.py draft -c -m "This is a test draft"
+> ./kd.py draft -c -m "This is a test draft"
 ```
 
 ```
