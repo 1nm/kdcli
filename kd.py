@@ -115,7 +115,18 @@ class KidsDiaryCLI:
             "pickUpPerson": pick_up_person, "pickUpTime": epoch_millis(dt0am + pick_up_time_delta)}
 
     def list_drafts(self):
-        self.create_or_update_draft(draft_payload=None)
+        payload = {
+            "childId": self._config['childIds'][0], "userToken": self._config['userToken']}
+        draft_list_response = post(path="diary/draft/list", payload=payload)
+        if draft_list_response.status_code == 200:
+            data = draft_list_response.json()
+            if data['totalHits'] > 0:
+                logger.info(
+                    f"Found {data['totalHits']} draft(s):")
+                # List the draft content
+                for draft in data['list']:
+                    draft_content = self.get_draft(draft_id=draft['draftId'])
+                    logger.info(f"{draft_content}")
 
     def get_draft(self, draft_id: str) -> Dict:
         payload = {
@@ -133,12 +144,6 @@ class KidsDiaryCLI:
         if draft_list_response.status_code == 200:
             data = draft_list_response.json()
             if data['totalHits'] > 0:
-                logger.info(
-                    f"Found {data['totalHits']} draft(s):")
-                # List the draft content
-                for draft in data['list']:
-                    draft_content = self.get_draft(draft_id=draft['draftId'])
-                    logger.info(f"{draft_content}")
                 if draft_payload is not None:
                     draft_payload['draftId'] = data['list'][0]['draftId']
                     logger.info(
