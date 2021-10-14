@@ -4,9 +4,43 @@ A CLI tool that helps manipulating KidsDiary from command line
 
 ## Usage
 
-```bash
-> ./kd.py draft -h
 ```
+usage: kd.py [-h] {draft,login,logout} ...
+
+KidsDiary CLI
+
+positional arguments:
+  {draft,login,logout}
+    draft               see `draft -h`
+    login               see `login -h`
+    logout              see `logout -h`
+
+optional arguments:
+  -h, --help            show this help message and exit
+```
+
+
+### Login
+
+```
+usage: kd.py login [-h] -u USER -p PASSWORD
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u USER, --user USER
+  -p PASSWORD, --password PASSWORD
+```
+
+### Logout
+
+```
+usage: kd.py logout [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+### Draft
 
 ```
 usage: kd.py draft [-h] [-l] [-c] [-T] [-m MESSAGE] [-p PICK_UP_PERSON] [-f FOOD_MENU]
@@ -26,7 +60,28 @@ optional arguments:
 
 ## Examples
 
+### Login
+
+```bash
+> ./kd.py login -u YOUR_USER_NAME -p YOUR_PASSWORD
+```
+
+```
+2021-10-15 00:42:37 - INFO: Login succeeded!
+```
+
+### Logout
+
+```bash
+> ./kd.py logout
+```
+
+```
+2021-10-15 00:44:51 - INFO: Logged out
+```
+
 ### List the drafts
+
 ```bash
 > ./kd.py draft -l
 ```
