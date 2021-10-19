@@ -5,7 +5,7 @@ import random
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timezone, timedelta
-from typing import Dict
+from typing import Dict, List
 from pathlib import Path
 
 import requests
@@ -90,6 +90,7 @@ class KidsDiaryCLI:
                           message: str = "本日もよろしくお願いいたします",
                           food_menu: str = "Milk and bread",
                           pick_up_person: str = "Father",
+                          photos: List[str] = [],
                           publish_delta=timedelta(
                               hours=8, minutes=30),  # publish at 8:30am
                           # slept at 8pm yesterday
@@ -108,6 +109,7 @@ class KidsDiaryCLI:
             "userToken": self._config['userToken'],
             "publishScheduleDate": epoch_millis(dt0am + publish_delta),
             "textContent": message,
+            "photos": photos,
             "health": [{"healthStatus": "Health",
                         # randomly generated from 36.4 to 36.8
                         "temperature": f"36.{random.choice([4, 5, 6, 7, 8])}",
@@ -116,6 +118,25 @@ class KidsDiaryCLI:
                        "awakeTime": epoch_millis((dt0am + awake_time_delta))}],
             "food": [{"foodMenu": food_menu, "foodTime": epoch_millis(dt0am + food_time_delta)}],
             "pickUpPerson": pick_up_person, "pickUpTime": epoch_millis(dt0am + pick_up_time_delta)}
+
+    def get_all_photos(self):
+        payload = {"userToken": self._config['userToken']}
+        photo_list_response = post(path="album/photo/all", payload=payload)
+        if photo_list_response.status_code == 200:
+            data = photo_list_response.json()
+            if data['totalHits'] > 0:
+                return data['list']
+
+    def list_photos(self):
+        photos = self.get_all_photos()
+        count = len(photos)
+        logger.info(f"Found {count} photo(s):")
+        for photo in photos:
+            logger.info(f"{photo}")
+
+    def get_last_photo(self):
+        photos = self.get_all_photos()
+        return [photos[0]['url']] if len(photos) > 0 else []
 
     def list_drafts(self):
         payload = {
@@ -190,8 +211,10 @@ def command_draft(args):
         message = args.message.replace('\\n', '\n')
         food_menu = args.food_menu
         pick_up_person = args.pick_up_person
+        photos = helper.get_last_photo() if args.use_last_photo else []
         draft_payload = helper.get_draft_payload(
-            date=date, message=message, food_menu=food_menu, pick_up_person=pick_up_person)
+            date=date, message=message, food_menu=food_menu, pick_up_person=pick_up_person, photos=photos)
+        logger.info(draft_payload)
         helper.create_or_update_draft(draft_payload=draft_payload)
 
 
@@ -217,6 +240,18 @@ def command_version(args):
     logger.info(f"{__version__}")
 
 
+def command_photo(args):
+    config = load_config()
+    if config is None:
+        logger.error("Credentials not found! Please login.")
+        sys.exit(1)
+    else:
+        logger.info(f"Logged in as {config['loginName']}")
+    helper = KidsDiaryCLI(config)
+    if args.list:
+        helper.list_photos()
+
+
 def main():
     parser = ArgumentParser(description="KidsDiary CLI",
                             formatter_class=ArgumentDefaultsHelpFormatter)
@@ -238,6 +273,8 @@ def main():
         "-p", "--pick-up-person", default='Father', help='Pick-up person')
     parser_draft.add_argument(
         "-f", "--food-menu", default='Milk and bread', help='Food menu')
+    parser_draft.add_argument(
+        "-L", "--use-last-photo", action='store_true', help='Use last photo')
     parser_draft.set_defaults(handler=command_draft)
 
     parser_login = subparsers.add_parser(
@@ -253,6 +290,12 @@ def main():
     parser_version = subparsers.add_parser(
         'version', help='see `version -h`', formatter_class=ArgumentDefaultsHelpFormatter)
     parser_version.set_defaults(handler=command_version)
+
+    parser_photo = subparsers.add_parser(
+        'photo', help='see `photo -h`', formatter_class=ArgumentDefaultsHelpFormatter)
+    parser_photo.add_argument(
+        "-l", "--list", action="store_true", help='List the photos')
+    parser_photo.set_defaults(handler=command_photo)
 
     args = parser.parse_args()
     if hasattr(args, 'handler'):
