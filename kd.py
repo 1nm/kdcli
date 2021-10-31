@@ -232,12 +232,12 @@ def command_login(args):
         logger.error(f"Login failed!")
 
 
-def command_logout():
+def command_logout(args):
     remove_config()
     logger.info(f"Logged out")
 
 
-def command_version():
+def command_version(args):
     logger.info(f"{__version__}")
 
 
