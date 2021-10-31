@@ -5,8 +5,8 @@ import random
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List
 from pathlib import Path
+from typing import Dict
 
 import requests
 
@@ -54,29 +54,29 @@ def nearest(tz: timezone = TIME_ZONE_JST) -> datetime:
     return today() if hour < 9 else tomorrow()
 
 
-def remove_config() -> str:
-    kdcliConfigDir = Path.home() / ".kdcli"
-    configFile = kdcliConfigDir / "config.json"
-    if configFile.exists:
-        configFile.unlink()
+def remove_config():
+    kdcli_config_dir = Path.home() / ".kdcli"
+    config_file = kdcli_config_dir / "config.json"
+    if config_file.exists:
+        config_file.unlink()
 
 
-def load_config() -> Dict:
-    kdcliConfigDir = Path.home() / ".kdcli"
-    configFile = kdcliConfigDir / "config.json"
-    if not kdcliConfigDir.exists() or not configFile.exists():
+def load_config():
+    kdcli_config_dir = Path.home() / ".kdcli"
+    config_file = kdcli_config_dir / "config.json"
+    if not kdcli_config_dir.exists() or not config_file.exists():
         return None
-    with configFile.open(mode="r") as f:
+    with config_file.open(mode="r") as f:
         config = json.load(f)
     return config
 
 
 def save_config(config: Dict):
-    kdcliConfigDir = Path.home() / ".kdcli"
-    if not kdcliConfigDir.exists():
-        kdcliConfigDir.mkdir()
-    configFile = kdcliConfigDir / "config.json"
-    with configFile.open(mode="w") as f:
+    kdcli_config_dir = Path.home() / ".kdcli"
+    if not kdcli_config_dir.exists():
+        kdcli_config_dir.mkdir()
+    config_file = kdcli_config_dir / "config.json"
+    with config_file.open(mode="w") as f:
         json.dump(config, f)
 
 
@@ -90,7 +90,7 @@ class KidsDiaryCLI:
                           message: str = "本日もよろしくお願いいたします",
                           food_menu: str = "Milk and bread",
                           pick_up_person: str = "Father",
-                          photos: List[str] = [],
+                          photos=None,
                           publish_delta=timedelta(
                               hours=8, minutes=30),  # publish at 8:30am
                           # slept at 8pm yesterday
@@ -103,6 +103,8 @@ class KidsDiaryCLI:
                           pick_up_time_delta=timedelta(
                               hours=16, minutes=30)  # pick-up at 4:30pm
                           ) -> Dict:
+        if photos is None:
+            photos = []
         dt0am = datetime_0am(date)
         return {
             "childId": self._config['childIds'][0],
@@ -134,9 +136,9 @@ class KidsDiaryCLI:
         for photo in photos:
             logger.info(f"{photo}")
 
-    def get_last_photo(self):
-        photos = self.get_all_photos()
-        return [photos[0]['url']] if len(photos) > 0 else []
+    def get_last_photos(self, num_photos=1):
+        photos = self.get_all_photos()[0:num_photos]
+        return [photo['url'] for photo in photos]
 
     def list_drafts(self):
         payload = {
@@ -153,9 +155,7 @@ class KidsDiaryCLI:
                     logger.info(f"{draft_content}")
 
     def get_draft(self, draft_id: str) -> Dict:
-        payload = {
-            "childId": self._config['childIds'][0], "userToken": self._config['userToken']}
-        payload['draftId'] = draft_id
+        payload = {"childId": self._config['childIds'][0], "userToken": self._config['userToken'], 'draftId': draft_id}
         draft_detail_response = post(
             path="diary/draft/detail", payload=payload)
         if draft_detail_response.status_code == 200:
@@ -211,7 +211,7 @@ def command_draft(args):
         message = args.message.replace('\\n', '\n')
         food_menu = args.food_menu
         pick_up_person = args.pick_up_person
-        photos = helper.get_last_photo() if args.use_last_photo else []
+        photos = helper.get_last_photos(args.use_last_photos)
         draft_payload = helper.get_draft_payload(
             date=date, message=message, food_menu=food_menu, pick_up_person=pick_up_person, photos=photos)
         logger.info(draft_payload)
@@ -224,19 +224,20 @@ def command_login(args):
     if login_response.status_code == 200:
         login_response_json = login_response.json()
         config = {
-            'userToken': login_response_json['userToken'], 'childIds': login_response_json['childIds'], 'loginName': login_response_json['loginName']}
+            'userToken': login_response_json['userToken'], 'childIds': login_response_json['childIds'],
+            'loginName': login_response_json['loginName']}
         save_config(config)
         logger.info(f"Login succeeded!")
     else:
         logger.error(f"Login failed!")
 
 
-def command_logout(args):
+def command_logout():
     remove_config()
     logger.info(f"Logged out")
 
 
-def command_version(args):
+def command_version():
     logger.info(f"{__version__}")
 
 
@@ -274,7 +275,7 @@ def main():
     parser_draft.add_argument(
         "-f", "--food-menu", default='Milk and bread', help='Food menu')
     parser_draft.add_argument(
-        "-L", "--use-last-photo", action='store_true', help='Use last photo')
+        "-L", "--use-last-photos", default=0, type=int, choices=range(0, 3), help='Use last n photos')
     parser_draft.set_defaults(handler=command_draft)
 
     parser_login = subparsers.add_parser(

@@ -53,6 +53,8 @@ optional arguments:
                         Pick-up person (default: Father)
   -f FOOD_MENU, --food-menu FOOD_MENU
                         Food menu (default: Milk and bread)
+  -L {0,1,2}, --use-last-photos {0,1,2}
+                        Use last n photos (default: 0)
 ```
 
 ## Examples
