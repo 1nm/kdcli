@@ -80,6 +80,10 @@ def save_config(config: Dict):
         json.dump(config, f)
 
 
+def get_random_body_temperature() -> float:
+    return random.randint(364, 371) / 10.0
+
+
 class KidsDiaryCLI:
     def __init__(self, config: Dict):
         if config is None or 'userToken' not in config:
@@ -113,8 +117,8 @@ class KidsDiaryCLI:
             "textContent": message,
             "photos": photos,
             "health": [{"healthStatus": "Health",
-                        # randomly generated from 36.4 to 36.8
-                        "temperature": f"36.{random.choice([4, 5, 6, 7, 8])}",
+                        # randomly generated from 36.4 to 37.1
+                        "temperature": f"{get_random_body_temperature()}",
                         "healthTime": str(epoch_millis(dt0am + health_time_delta))}],
             "sleep": [{"sleepTime": epoch_millis(dt0am + sleep_time_delta),
                        "awakeTime": epoch_millis((dt0am + awake_time_delta))}],

@@ -385,3 +385,5 @@ gradle-app.setting
 # End of https://www.toptal.com/developers/gitignore/api/vim,java,macos,linux,emacs,kotlin,vscode,eclipse,windows,intellij+all,gradle,maven
 
 *.http
+
+.venv
