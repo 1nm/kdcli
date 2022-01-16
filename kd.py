@@ -142,7 +142,7 @@ class KidsDiaryCLI:
 
     def get_last_photos(self, num_photos=1):
         photos = self.get_all_photos()[0:num_photos]
-        return [photo['url'] for photo in photos]
+        return [photo['url'] for photo in photos].reverse()
 
     def list_drafts(self):
         payload = {
