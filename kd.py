@@ -63,10 +63,15 @@ def remove_config():
 
 
 def load_config():
-    if "USER_TOKEN" in os.environ:
-        user_token = os.environ["USER_TOKEN"]
-        payload = {"userToken": user_token}
-        my_profile_response = post(path="my_profile", payload=payload)
+    if "USERNAME" in os.environ and "PASSWORD" in os.environ:
+        username = os.environ["USERNAME"]
+        password = os.environ["PASSWORD"]
+        login_response = post(path="login", payload={"loginName": username, "password": password})
+        if login_response.status_code == 200:
+            return login_response.json()
+    if "TOKEN" in os.environ:
+        user_token = os.environ["TOKEN"]
+        my_profile_response = post(path="my_profile", payload={"userToken": user_token})
         if my_profile_response.status_code == 200:
             return my_profile_response.json()
     kdcli_config_dir = Path.home() / ".kdcli"
@@ -148,8 +153,11 @@ class KidsDiaryCLI:
             logger.info(f"{photo}")
 
     def get_last_photos(self, num_photos=1):
+        logger.info(f"Getting last {num_photos} photo(s)")
         photos = self.get_all_photos()[0:num_photos]
-        return [photo['url'] for photo in photos].reverse()
+        photo_urls = [photo['url'] for photo in photos]
+        photo_urls_reversed = photo_urls[::-1]
+        return photo_urls_reversed
 
     def list_drafts(self):
         payload = {
