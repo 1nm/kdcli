@@ -2,39 +2,24 @@
 
 A CLI tool that helps manipulating KidsDiary from command line
 
-## Install
-```
-curl -LO https://github.com/1nm/kdcli/releases/latest/download/kd
-sudo install -o root -g root -m 0755 kd /usr/local/bin/kd
-```
-
 ## Usage
 
+```bash
+docker run --rm -it -e USERNAME=XXX -e PASSWORD=XXX x1nm/kd <command>
 ```
-usage: kd [-h] {draft,login,logout,version} ...
+
+```
+usage: kd [-h] {draft,version} ...
 
 KidsDiary CLI
 
 positional arguments:
   {draft,login,logout,version}
     draft               see `draft -h`
-    login               see `login -h`
-    logout              see `logout -h`
     version             see `version -h`
 
 optional arguments:
   -h, --help            show this help message and exit
-```
-
-### Login
-
-```
-usage: kd login [-h] -u USER -p PASSWORD
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -u USER, --user USER
-  -p PASSWORD, --password PASSWORD
 ```
 
 ### Draft
@@ -59,24 +44,10 @@ optional arguments:
 
 ## Examples
 
-### Login
-
-```bash
-> kd login -u YOUR_USER_NAME -p YOUR_PASSWORD
-```
-
-```
-Login succeeded!
-```
-
-```
-Logged out
-```
-
 ### List the drafts
 
 ```bash
-> kd draft -l
+> docker run --rm -it -e USERNAME=XXX -e PASSWORD=XXX x1nm/kd draft -l
 ```
 
 ```
@@ -88,7 +59,7 @@ Found 1 draft(s):
 ### Create or replace a draft
 
 ```bash
-> kd draft -c -m "This is a test draft"
+> docker run --rm -it -e USERNAME=XXX -e PASSWORD=XXX x1nm/kd draft -L 1 -c -m "This is a test draft"
 ```
 
 ```
