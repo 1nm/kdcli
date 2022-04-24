@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import logging
+import os
 import random
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -62,6 +63,12 @@ def remove_config():
 
 
 def load_config():
+    if "USER_TOKEN" in os.environ:
+        user_token = os.environ["USER_TOKEN"]
+        payload = {"userToken": user_token}
+        my_profile_response = post(path="my_profile", payload=payload)
+        if my_profile_response.status_code == 200:
+            return my_profile_response.json()
     kdcli_config_dir = Path.home() / ".kdcli"
     config_file = kdcli_config_dir / "config.json"
     if not kdcli_config_dir.exists() or not config_file.exists():
